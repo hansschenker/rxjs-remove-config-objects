@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareConfig, RepeatConfig, ...); `TimeoutConfig`, `ThrottleConfig`, and `RetryConfig` are done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareConfig, ShareReplayConfig, ...); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, and `RepeatConfig` are done.
 
 ## Commands
 
@@ -62,7 +62,18 @@ The semantic contract that makes composition exact: `timeoutEach` arms its gap t
 | `retry({delay: (err, i) => notifier})` | `retryDelayedBy((err, i) => notifier)` |
 | `retry({count: n, delay: ms})` | `retryDelayedBy((err, i) => (i <= n ? timer(ms) : throwError(() => err)))` |
 
-Rule 2 twice: `resetOnSuccess` is named for its behavior (`Consecutive` — give up only after n consecutive value-less failures), and the function form of `delay` is a different concept than the number form, so it gets `DelayedBy` (the `...By` suffix = "driven by a factory/policy"). The `count + delay` combination is rule 6 resolved at the **value level**: retries can't nest (piping two retry operators multiplies attempts), so the limit folds into the `RetryDelayPolicy` function itself — rethrow to give up, complete to complete the output. `retryEquivalence.test.ts` proves the folded policy identical to `retry({count, delay})`. All four operators share `src/operators/internal/retryLoop.ts`, which also handles synchronously-erroring sources — reuse it for `RepeatConfig`.
+Rule 2 twice: `resetOnSuccess` is named for its behavior (`Consecutive` — give up only after n consecutive value-less failures), and the function form of `delay` is a different concept than the number form, so it gets `DelayedBy` (the `...By` suffix = "driven by a factory/policy"). The `count + delay` combination is rule 6 resolved at the **value level**: retries can't nest (piping two retry operators multiplies attempts), so the limit folds into the `RetryDelayPolicy` function itself — rethrow to give up, complete to complete the output. `retryEquivalence.test.ts` proves the folded policy identical to `retry({count, delay})`.
+
+### RepeatConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `repeat(n)` / `repeat({count: n})` | `repeatCount(n)` |
+| `repeat({delay: ms})` | `repeatDelayed(ms)` |
+| `repeat({delay: (i) => notifier})` | `repeatDelayedBy((i) => notifier)` |
+| `repeat({count: n, delay: ms})` | `repeatDelayedBy((i) => (i < n ? timer(ms) : EMPTY))` |
+
+RetryConfig's mirror image with error and complete swapped. The fold-to-stop move swaps accordingly: a `RetryDelayPolicy` gives up by **rethrowing**, a `RepeatDelayPolicy` stops by **completing** (return `EMPTY`). Config parity carried over deliberately: `repeatCount(n)` counts total runs while `retryCount(n)` counts retries after the initial run, and `repeatCount(0)` is empty without subscribing. All retry/repeat operators share `src/operators/internal/resubscribeLoop.ts` (which also handles sources that terminate synchronously during subscribe) via the thin `retryLoop`/`repeatLoop` adapters.
 
 ## Notes
 

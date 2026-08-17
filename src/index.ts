@@ -10,3 +10,7 @@ export { retryConsecutive } from './operators/retryConsecutive';
 export { retryDelayed } from './operators/retryDelayed';
 export { retryDelayedBy } from './operators/retryDelayedBy';
 export type { RetryDelayPolicy } from './operators/retryDelayedBy';
+export { repeatCount } from './operators/repeatCount';
+export { repeatDelayed } from './operators/repeatDelayed';
+export { repeatDelayedBy } from './operators/repeatDelayedBy';
+export type { RepeatDelayPolicy } from './operators/repeatDelayedBy';
