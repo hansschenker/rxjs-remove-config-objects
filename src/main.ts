@@ -18,10 +18,14 @@ import {
 import type { Observable } from 'rxjs';
 import { onTimeout, shareVia, timeoutEach, timeoutFirst } from './index';
 
-const BEAT = 200; // one Morse beat in ms
+const BEAT = 200; // press clock: one Morse beat in ms
 const DASH_HOLD = 2 * BEAT; // hold at least this long for a dash
-const LETTER_GAP = 3; // beats of silence that close a letter
-const WORD_GAP = 7; // beats of silence that end a word
+// The silence clock runs slower than strict Morse (which would be BEAT):
+// beginners tap with ~1.5 s pauses, and the 3:7 letter:word ratio matters
+// more than the absolute tempo. Lower GAP_BEAT as your rhythm improves.
+const GAP_BEAT = 650;
+const LETTER_GAP = 3; // gap beats of silence that close a letter (~2 s)
+const WORD_GAP = 7; // gap beats of silence that end a word (~4.5 s)
 
 // prettier-ignore
 const MORSE: Record<string, string> = {
@@ -98,7 +102,7 @@ const symbol$: Observable<'.' | '-'> = tap$.pipe(map((tap) => tap.symbol));
 // re-arms the detector for the next burst of taps.
 const silenceAfterTaps = (beats: number): Observable<number> =>
   symbol$.pipe(
-    timeoutEach(beats * BEAT),
+    timeoutEach(beats * GAP_BEAT),
     ignoreElements(),
     onTimeout(() => of(beats)),
     repeat(),
@@ -179,8 +183,12 @@ tap$.subscribe(({ symbol, held, pauseBefore }) => {
       : `${pauseNote}held ${held} ms (≥ ${DASH_HOLD} ms) → dash <b>—</b>`
   );
 });
-letterClose$.subscribe(() => logLine(`${LETTER_GAP * BEAT} ms of silence → <b>letter closed</b>`));
-wordClose$.subscribe(() => logLine(`${WORD_GAP * BEAT} ms of silence → <b>word break</b>`));
+letterClose$.subscribe(() =>
+  logLine(`${LETTER_GAP * GAP_BEAT} ms of silence → <b>letter closed</b>`)
+);
+wordClose$.subscribe(() =>
+  logLine(`${WORD_GAP * GAP_BEAT} ms of silence → <b>word break</b>`)
+);
 
 chartEl.innerHTML = Object.entries(MORSE)
   .map(
