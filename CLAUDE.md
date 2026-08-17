@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ConnectConfig, WebSocketSubjectConfig, AjaxConfig, GlobalConfig); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, `ShareConfig`, and `ShareReplayConfig` are done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (WebSocketSubjectConfig, AjaxConfig, GlobalConfig); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, `ShareConfig`, `ShareReplayConfig`, and `ConnectConfig` are done.
 
 ## Commands
 
@@ -96,6 +96,15 @@ Two additions to the playbook. First, **booleans fold into policies as degenerat
 | `shareReplay({bufferSize: n, refCount: true})` | `shareVia(() => new ReplaySubject(n))` — no new operator |
 
 The cache lifecycle (`shareCached`/`shareCachedVia`) is: connect on first demand, never disconnect, completion final, errors **not** cached (an error resets so the next subscriber retries — a cache that permanently serves an error would be a footgun, which is also why `ShareConfig`'s `resetOnError: false` stays deliberately unrepresented). The `refCount: true` form needs no operator because after completion every subscriber auto-unsubscribes, making `resetOnComplete: false` unobservable next to the refcount-zero reset — `shareReplayEquivalence.test.ts` proves the reduction against `shareVia`. **Connector-folding** is the new playbook entry: subject constructor parameters (`windowTime`, and the scheduler it needs for virtual time) are value-level concerns folded into the connector factory, never operator parameters. Note: `ReplaySubject` ages `windowTime` values with `Date.now()` unless the scheduler is passed to its constructor — marble tests must pass the `TestScheduler` instance into the connector.
+
+### ConnectConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `connect(selector)` | unchanged (no config) |
+| `connect(selector, {connector: fn})` | `connectVia(fn)(selector)` |
+
+The playbook entry here is the **curried operator**: when a config decorates an operator that has a primary non-config parameter (`connect`'s selector), the replacement is curried — configuration stage first (so it can be partially applied: `const connectReplaying = connectVia(() => new ReplaySubject(1))`), primary parameter second. Every stage still takes exactly one parameter.
 
 ## Notes
 

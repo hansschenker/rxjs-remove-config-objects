@@ -20,3 +20,4 @@ export { shareLingerBy } from './operators/shareLingerBy';
 export type { ShareLingerPolicy } from './operators/shareLingerBy';
 export { shareCached } from './operators/shareCached';
 export { shareCachedVia } from './operators/shareCachedVia';
+export { connectVia } from './operators/connectVia';
