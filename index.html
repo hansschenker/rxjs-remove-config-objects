@@ -2,12 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>rxjs-remove-config-objects</title>
+    <title>Morse tapper — rxjs-remove-config-objects demo</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>"
+    />
   </head>
   <body>
-    <div id="app"></div>
+    <main>
+      <h1>Morse tapper</h1>
+      <p class="rules">
+        Tap <kbd>Space</kbd> or the pad. A short tap is a dot <b>•</b>; holding
+        400&nbsp;ms or longer is a dash <b>—</b>. Pause 600&nbsp;ms to finish a
+        letter, 1.4&nbsp;s to finish a word.
+      </p>
+      <button id="pad" type="button" aria-label="Morse tap pad">tap</button>
+      <div id="draft" class="draft" aria-live="polite">&nbsp;</div>
+      <div id="message" class="message" aria-live="polite">&nbsp;</div>
+      <p id="hint" class="hint" hidden>
+        Nothing yet — try tapping <kbd>Space</kbd> three times quickly: that's an <b>S</b>.
+      </p>
+      <button id="clear" type="button" class="clear">clear</button>
+      <section class="timing">
+        <h2>Timing log</h2>
+        <ol id="log" class="log" reversed></ol>
+      </section>
+      <details class="reference">
+        <summary>Morse alphabet</summary>
+        <div id="chart" class="chart"></div>
+      </details>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

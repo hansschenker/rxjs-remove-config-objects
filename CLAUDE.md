@@ -12,7 +12,10 @@ A library of single-purpose RxJS operators that replace RxJS's config-object API
 - `npm test -- timeoutEach` — run a single test file (matches on file name)
 - `npm run test:watch` — Vitest watch mode
 - `npm run typecheck` — `tsc --noEmit`; tsup does **not** typecheck, so run this before considering a change done
-- `npm run build` — tsup → `dist/` (ESM + CJS + `.d.ts`)
+- `npm run build` — tsup → `dist/` (ESM + CJS + `.d.ts`); this is the **library** build
+- `npm run dev` — Vite dev server for the Morse-tapper demo (`index.html` + `src/main.ts`)
+- `npm run build:demo` — Vite build of the demo → `dist-demo/` (kept out of `dist/`, which npm publishes)
+- Publishing: `npm publish` runs the `prepublishOnly` gate (typecheck + tests + build); requires `npm login` first
 
 ## Architecture
 
@@ -21,6 +24,8 @@ A library of single-purpose RxJS operators that replace RxJS's config-object API
 - `src/operators/timeoutEquivalence.test.ts` proves that composed single-purpose operators reproduce the original config-object operator marble-for-marble, including the `TimeoutError.info` shape. Every future config-object replacement should get an equivalence test like this.
 - rxjs is a peerDependency; import everything (operators included) from the `rxjs` root — except the creation specs, which use `rxjs/webSocket` and `rxjs/ajax`.
 - `src/creation/` holds the webSocket and ajax spec pipelines (one file per family — many small aspect functions are cohesive, unlike operators); `src/globals/` holds the GlobalConfig setters.
+- `index.html` + `src/main.ts` + `src/style.css` are the Vite **demo app** (a Morse-code tapper showcasing `timeoutFirst`/`timeoutEach`/`onTimeout`/`shareVia`); they are not part of the published library — tsup's only entry is `src/index.ts`, and `files: ["dist"]` keeps npm publishes clean.
+- TypeScript is v6 with `erasableSyntaxOnly` (no enums, no constructor parameter-properties) and `verbatimModuleSyntax` (type imports must use `import type`); `ignoreDeprecations: "6.0"` is required or tsup's dts worker fails on its internally-injected `baseUrl`.
 
 ## The naming scheme (applies to every config object)
 

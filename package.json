@@ -1,18 +1,61 @@
 {
   "name": "rxjs-remove-config-objects",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Single-purpose, single-parameter RxJS operators that replace config-object APIs",
+  "license": "MIT",
+  "author": "Hans Schenker",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hansschenker/rxjs-remove-config-objects.git"
+  },
+  "homepage": "https://github.com/hansschenker/rxjs-remove-config-objects#readme",
+  "bugs": "https://github.com/hansschenker/rxjs-remove-config-objects/issues",
+  "keywords": [
+    "rxjs",
+    "operators",
+    "functional-programming",
+    "currying",
+    "partial-application",
+    "config-objects",
+    "timeout",
+    "throttle",
+    "retry",
+    "repeat",
+    "share"
+  ],
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsup",
+    "build:demo": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.0"
   },
   "devDependencies": {
+    "rxjs": "^7.8.2",
+    "tsup": "^8.5.0",
     "typescript": "~6.0.2",
-    "vite": "^8.0.12"
-  },
-  "dependencies": {
+    "vite": "^8.0.12",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.10"
   }

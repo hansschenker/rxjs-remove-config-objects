@@ -24,10 +24,12 @@ class FakeWebSocket {
   onclose: ((event: CloseEvent) => void) | null = null;
   onmessage: ((event: MessageEvent) => void) | null = null;
 
-  constructor(
-    public url: string,
-    public protocols?: string | string[]
-  ) {
+  url: string;
+  protocols?: string | string[];
+
+  constructor(url: string, protocols?: string | string[]) {
+    this.url = url;
+    this.protocols = protocols;
     FakeWebSocket.instances.push(this);
   }
 
