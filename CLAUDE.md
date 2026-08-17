@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareConfig, ShareReplayConfig, ...); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, and `RepeatConfig` are done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareReplayConfig, ConnectConfig, ...); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, and `ShareConfig` are done.
 
 ## Commands
 
@@ -74,6 +74,18 @@ Rule 2 twice: `resetOnSuccess` is named for its behavior (`Consecutive` — give
 | `repeat({count: n, delay: ms})` | `repeatDelayedBy((i) => (i < n ? timer(ms) : EMPTY))` |
 
 RetryConfig's mirror image with error and complete swapped. The fold-to-stop move swaps accordingly: a `RetryDelayPolicy` gives up by **rethrowing**, a `RepeatDelayPolicy` stops by **completing** (return `EMPTY`). Config parity carried over deliberately: `repeatCount(n)` counts total runs while `retryCount(n)` counts retries after the initial run, and `repeatCount(0)` is empty without subscribing. All retry/repeat operators share `src/operators/internal/resubscribeLoop.ts` (which also handles sources that terminate synchronously during subscribe) via the thin `retryLoop`/`repeatLoop` adapters.
+
+### ShareConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `share({connector: fn})` | `shareVia(fn)` |
+| `share({resetOnRefCountZero: () => timer(ms)})` | `shareLinger(ms)` |
+| `share({resetOnRefCountZero: () => obs})` | `shareLingerBy(() => obs)` |
+| `share({resetOnRefCountZero: false})` | `shareLingerBy(() => NEVER)` |
+| `share({resetOnError: false})`, `share({resetOnComplete: false})` | deferred — see below |
+
+Two additions to the playbook. First, **booleans fold into policies as degenerate values**: every ShareConfig reset key is `boolean \| (() => Observable)`, and `false ≡ () => NEVER` (never reset) while `true` is the default needing no operator — so the boolean forms need no operators of their own. Second, the share operators **delegate to rxjs's `share(config)` internally** (unlike timeout/throttle/retry/repeat, which are standalone): multicast lifecycle is subtle, battle-tested code, and reimplementing it adds risk without adding API clarity — the config object still disappears from every call site, which is the goal. Share operators cannot combine with each other (one shared connection — rule 6); the multi-key combinations people actually use (`connector: ReplaySubject` + `resetOnComplete: false` + `resetOnRefCountZero: false`) are exactly `shareReplay`, so `resetOnError`/`resetOnComplete` non-defaults are deferred to the ShareReplayConfig round. Share tests use multiple `expectObservable(shared, subscriptionMarble)` calls against one shared instance plus `expectSubscriptions` on the source to prove single-connection behavior — subtle detail: in a subscription marble like `'5ms ^ 4ms !'` the `^` occupies a frame, so `!` lands at frame 10, not 9.
 
 ## Notes
 

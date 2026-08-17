@@ -14,3 +14,7 @@ export { repeatCount } from './operators/repeatCount';
 export { repeatDelayed } from './operators/repeatDelayed';
 export { repeatDelayedBy } from './operators/repeatDelayedBy';
 export type { RepeatDelayPolicy } from './operators/repeatDelayedBy';
+export { shareVia } from './operators/shareVia';
+export { shareLinger } from './operators/shareLinger';
+export { shareLingerBy } from './operators/shareLingerBy';
+export type { ShareLingerPolicy } from './operators/shareLingerBy';
