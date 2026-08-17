@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (WebSocketSubjectConfig, AjaxConfig, GlobalConfig); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, `ShareConfig`, `ShareReplayConfig`, and `ConnectConfig` are done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. All ten config objects listed in `docs/rxjs-config-objects.md` are replaced: `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, `ShareConfig`, `ShareReplayConfig`, `ConnectConfig` (operators), `WebSocketSubjectConfig`, `AjaxConfig` (creation-function specs in `src/creation/`), and `GlobalConfig` (setters in `src/globals/`).
 
 ## Commands
 
@@ -19,7 +19,8 @@ A library of single-purpose RxJS operators that replace RxJS's config-object API
 - One operator per file in `src/operators/<name>.ts`, re-exported from `src/index.ts` (the only tsup entry). Shared non-public helpers go in `src/operators/internal/`.
 - Tests are co-located as `src/operators/<name>.test.ts`, using marble syntax via `makeScheduler()` from `src/testing/marbles.ts`. That helper exists because Vitest's `toEqual` compares Error stacks; it normalizes errors to `{name, message, info}` — always use it, never construct a raw `TestScheduler`.
 - `src/operators/timeoutEquivalence.test.ts` proves that composed single-purpose operators reproduce the original config-object operator marble-for-marble, including the `TimeoutError.info` shape. Every future config-object replacement should get an equivalence test like this.
-- rxjs is a peerDependency; import everything (operators included) from the `rxjs` root.
+- rxjs is a peerDependency; import everything (operators included) from the `rxjs` root — except the creation specs, which use `rxjs/webSocket` and `rxjs/ajax`.
+- `src/creation/` holds the webSocket and ajax spec pipelines (one file per family — many small aspect functions are cohesive, unlike operators); `src/globals/` holds the GlobalConfig setters.
 
 ## The naming scheme (applies to every config object)
 
@@ -105,6 +106,32 @@ The cache lifecycle (`shareCached`/`shareCachedVia`) is: connect on first demand
 | `connect(selector, {connector: fn})` | `connectVia(fn)(selector)` |
 
 The playbook entry here is the **curried operator**: when a config decorates an operator that has a primary non-config parameter (`connect`'s selector), the replacement is curried — configuration stage first (so it can be partially applied: `const connectReplaying = connectVia(() => new ReplaySubject(1))`), primary parameter second. Every stage still takes exactly one parameter.
+
+### WebSocketSubjectConfig & AjaxConfig — the spec/aspect pattern (implemented)
+
+Creation-function configs use a different shape: a **starter** creates an opaque immutable spec, each config key becomes a single-parameter **aspect** (`spec → spec`) composed with rxjs's own `pipe`, and a **terminal** turns the spec into the live thing. The wrapped config object survives internally but never appears in user code.
+
+| Original | Replacement |
+|---|---|
+| `webSocket({url, ...})` | `openSocket(configure(socketAt<T>(url)))` where `configure = pipe(aspects...)` |
+| `protocol`, `serializer`, `deserializer` | `usingProtocol(p)`, `serializingBy(fn)`, `deserializingBy(fn)` |
+| `openObserver`/`closeObserver`/`closingObserver` | `onSocketOpen(fn)` / `onSocketClose(fn)` / `onSocketClosing(fn)` |
+| `binaryType`, `WebSocketCtor` | `asBinary(t)`, `connectingVia(Ctor)` |
+| `ajax({url, ...})` | `sendRequest<T>(configure(requestAt(url)))` |
+| `method`, `body`, `headers` | `usingMethod(m)`, `sending(body)`, `usingHeaders(h)` |
+| `timeout`, `responseType`, `withCredentials`, `createXHR` | `abortingAfter(ms)`, `expecting(t)`, `sendingCredentials(b)`, `requestingVia(f)` |
+
+Remaining AjaxConfig keys (`queryParams`, `user`/`password`, xsrf, progress flags) follow the same aspect pattern — add them as needed. Boundary note: `headers` and `body` are **data records, not configuration** — an object holding payload data is fine; the project only eliminates behavior bags. The DI keys get `Via` names and are also how the tests work: inject a fake `WebSocketCtor`/`createXHR` and assert on the fake — no network, no jsdom (fabricated events are cast plain objects, since Node lacks `CloseEvent`). Partial application is the payoff: `const asJsonApi = pipe(usingHeaders({accept: 'application/json'}), expecting('json'))` is a reusable client configuration.
+
+### GlobalConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `config.onUnhandledError = fn` | `onUnhandledError(fn)` (in `src/globals/globalHandlers.ts`) |
+| `config.onStoppedNotification = fn` | `onStoppedNotification(fn)` |
+| deprecated keys (`Promise`, `useDeprecated*`) | dropped, no replacement |
+
+Named single-purpose setters with `on<Event>` names; `null` restores the default. Both rxjs handlers fire via a real `setTimeout`, so tests await a tick and must reset `config` in `afterEach` (it's global mutable state).
 
 ## Notes
 

@@ -21,3 +21,29 @@ export type { ShareLingerPolicy } from './operators/shareLingerBy';
 export { shareCached } from './operators/shareCached';
 export { shareCachedVia } from './operators/shareCachedVia';
 export { connectVia } from './operators/connectVia';
+export {
+  socketAt,
+  usingProtocol,
+  serializingBy,
+  deserializingBy,
+  onSocketOpen,
+  onSocketClose,
+  onSocketClosing,
+  asBinary,
+  connectingVia,
+  openSocket,
+} from './creation/webSocket';
+export type { SocketAspect, SocketMessage, SocketSpec } from './creation/webSocket';
+export {
+  requestAt,
+  usingMethod,
+  sending,
+  usingHeaders,
+  abortingAfter,
+  expecting,
+  sendingCredentials,
+  requestingVia,
+  sendRequest,
+} from './creation/ajax';
+export type { RequestAspect, RequestSpec } from './creation/ajax';
+export { onUnhandledError, onStoppedNotification } from './globals/globalHandlers';
