@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ThrottleConfig, ShareConfig, RetryConfig, ...); `TimeoutConfig` is done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareConfig, RetryConfig, ...); `TimeoutConfig` and `ThrottleConfig` are done.
 
 ## Commands
 
@@ -41,6 +41,16 @@ A library of single-purpose RxJS operators that replace RxJS's config-object API
 | `... with: () => f$` | append `onTimeout(() => f$)` |
 
 The semantic contract that makes composition exact: `timeoutEach` arms its gap timer only **after** the first value — the first-value window belongs exclusively to `timeoutFirst`/`timeoutAt`. All three raise rxjs's own `TimeoutError` with the same `info` shape rxjs produces, so `onTimeout` also catches timeouts from rxjs's native `timeout` operator.
+
+### ThrottleConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `throttleTime(ms)` (default `{leading: true, trailing: false}`) | `throttleLeading(ms)` |
+| `throttleTime(ms, s, {leading: false, trailing: true})` | `throttleTrailing(ms)` |
+| `throttleTime(ms, s, {leading: true, trailing: true})` | `throttleLeadingTrailing(ms)` |
+
+`throttleLeadingTrailing` is rule 6 in action: both edges share a **single** throttle window, so piping `throttleLeading` into `throttleTrailing` would create two independent windows and different timing — the combination is one named policy, not a composition. `{leading: false, trailing: false}` emits nothing and is deliberately unrepresentable. The duration-selector variant `throttle(durationSelector, config)` is not covered yet; when it is, it should follow the same scheme (e.g. a `...By(durationSelector)` suffix).
 
 ## Notes
 
