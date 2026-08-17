@@ -5,3 +5,8 @@ export { onTimeout } from './operators/onTimeout';
 export { throttleLeading } from './operators/throttleLeading';
 export { throttleTrailing } from './operators/throttleTrailing';
 export { throttleLeadingTrailing } from './operators/throttleLeadingTrailing';
+export { retryCount } from './operators/retryCount';
+export { retryConsecutive } from './operators/retryConsecutive';
+export { retryDelayed } from './operators/retryDelayed';
+export { retryDelayedBy } from './operators/retryDelayedBy';
+export type { RetryDelayPolicy } from './operators/retryDelayedBy';
