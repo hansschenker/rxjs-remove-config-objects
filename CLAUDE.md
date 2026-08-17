@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ShareReplayConfig, ConnectConfig, ...); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, and `ShareConfig` are done.
+A library of single-purpose RxJS operators that replace RxJS's config-object APIs. The founding principles are in `docs/project-plan.md`: use currying/partial application instead of option bags, every operator takes exactly **one** parameter, and each operator's name states its single behavior. `docs/rxjs-config-objects.md` lists the config objects still to be replaced (ConnectConfig, WebSocketSubjectConfig, AjaxConfig, GlobalConfig); `TimeoutConfig`, `ThrottleConfig`, `RetryConfig`, `RepeatConfig`, `ShareConfig`, and `ShareReplayConfig` are done.
 
 ## Commands
 
@@ -86,6 +86,16 @@ RetryConfig's mirror image with error and complete swapped. The fold-to-stop mov
 | `share({resetOnError: false})`, `share({resetOnComplete: false})` | deferred — see below |
 
 Two additions to the playbook. First, **booleans fold into policies as degenerate values**: every ShareConfig reset key is `boolean \| (() => Observable)`, and `false ≡ () => NEVER` (never reset) while `true` is the default needing no operator — so the boolean forms need no operators of their own. Second, the share operators **delegate to rxjs's `share(config)` internally** (unlike timeout/throttle/retry/repeat, which are standalone): multicast lifecycle is subtle, battle-tested code, and reimplementing it adds risk without adding API clarity — the config object still disappears from every call site, which is the goal. Share operators cannot combine with each other (one shared connection — rule 6); the multi-key combinations people actually use (`connector: ReplaySubject` + `resetOnComplete: false` + `resetOnRefCountZero: false`) are exactly `shareReplay`, so `resetOnError`/`resetOnComplete` non-defaults are deferred to the ShareReplayConfig round. Share tests use multiple `expectObservable(shared, subscriptionMarble)` calls against one shared instance plus `expectSubscriptions` on the source to prove single-connection behavior — subtle detail: in a subscription marble like `'5ms ^ 4ms !'` the `^` occupies a frame, so `!` lands at frame 10, not 9.
+
+### ShareReplayConfig mapping (implemented)
+
+| Original | Replacement |
+|---|---|
+| `shareReplay(n)` / `shareReplay({bufferSize: n, refCount: false})` | `shareCached(n)` |
+| `shareReplay({bufferSize: n, windowTime: ms, refCount: false})` | `shareCachedVia(() => new ReplaySubject(n, ms))` |
+| `shareReplay({bufferSize: n, refCount: true})` | `shareVia(() => new ReplaySubject(n))` — no new operator |
+
+The cache lifecycle (`shareCached`/`shareCachedVia`) is: connect on first demand, never disconnect, completion final, errors **not** cached (an error resets so the next subscriber retries — a cache that permanently serves an error would be a footgun, which is also why `ShareConfig`'s `resetOnError: false` stays deliberately unrepresented). The `refCount: true` form needs no operator because after completion every subscriber auto-unsubscribes, making `resetOnComplete: false` unobservable next to the refcount-zero reset — `shareReplayEquivalence.test.ts` proves the reduction against `shareVia`. **Connector-folding** is the new playbook entry: subject constructor parameters (`windowTime`, and the scheduler it needs for virtual time) are value-level concerns folded into the connector factory, never operator parameters. Note: `ReplaySubject` ages `windowTime` values with `Date.now()` unless the scheduler is passed to its constructor — marble tests must pass the `TestScheduler` instance into the connector.
 
 ## Notes
 
